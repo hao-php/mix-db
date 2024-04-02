@@ -35,11 +35,6 @@ class TransactionPacker
         $this->tx->rollback();
     }
 
-    public function aaa()
-    {
-
-    }
-
     public function __call($name, $arguments = [])
     {
         return call_user_func_array([$this->tx, $name], $arguments);
