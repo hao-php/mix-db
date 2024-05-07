@@ -12,6 +12,10 @@ class TransactionPacker
 
     protected Transaction $tx;
 
+    private int $beginNum = 0;
+
+    public $commitEvents = [];
+
     public function __construct(Transaction $tx)
     {
         $this->tx = $tx;
@@ -23,7 +27,16 @@ class TransactionPacker
      */
     public function commit()
     {
+        $this->beginNum--;
+        if ($this->beginNum > 0) {
+            return;
+        }
         $this->tx->commit();
+        if (!empty($this->commitEvents)) {
+            foreach ($this->commitEvents as $event) {
+                $event();
+            }
+        }
     }
 
     /**
@@ -32,12 +45,26 @@ class TransactionPacker
      */
     public function rollback()
     {
+        $this->beginNum--;
+        if ($this->beginNum > 0) {
+            return;
+        }
         $this->tx->rollback();
     }
 
     public function __call($name, $arguments = [])
     {
         return call_user_func_array([$this->tx, $name], $arguments);
+    }
+
+    public function addNum()
+    {
+        $this->beginNum++;
+    }
+
+    public function addCommitEvent($event)
+    {
+        $this->commitEvents[] = $event;
     }
 
 }

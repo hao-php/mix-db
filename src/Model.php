@@ -2,24 +2,39 @@
 
 namespace Haoa\MixDb;
 
-use Mix\Database\Connection;
 use Mix\Database\ConnectionInterface;
 use Mix\Database\Database;
-use Mix\Database\Transaction;
+use Haoa\MixDb\Database as HaoDatabase;
 
 /**
- * @method get() 获取多行
- * @method first() 获取一行
- * @method \PDOStatement statement() // 获取原始结果集
- * @method ConnectionInterface raw(string $sql, ...$values)
- * @method ConnectionInterface exec(string $sql, ...$values)
+ *
  */
 abstract class Model
 {
 
+    const WRITE = 1;
+
+    const READ = 2;
+
     public string $table;
 
+    /**
+     * 主库, 必须设置
+     * @var Database|TransactionPacker
+     */
     protected Database|TransactionPacker $database;
+
+    protected Database|TransactionPacker|null $writeDatabase = null;
+
+    protected Database|TransactionPacker|null $readDatabase = null;
+
+    protected $lastDbName = '';
+
+    /**
+     * 是否使用事务对象
+     * @var bool
+     */
+    protected bool $useTran = true;
 
     /**
      * 更新的时候自动写入修改时间
@@ -135,7 +150,7 @@ abstract class Model
         return ['(' . implode(' AND ', $stringArr) . ')', $values];
     }
 
-    protected function buildQuery(Connection &$conn, $options = [])
+    protected function buildQuery(ConnectionInterface &$conn, $options = [])
     {
         if (!empty($this->wheres)) {
             foreach ($this->wheres as $where) {
@@ -196,7 +211,7 @@ abstract class Model
         $this->reset();
     }
 
-    protected function getConn(): ConnectionInterface
+    public function getConn(int $connType = 0): ConnectionInterface
     {
         if (empty($this->table)) {
             throw new \Exception("table is empty");
@@ -205,7 +220,34 @@ abstract class Model
         if (!empty($this->alias)) {
             $table .= " AS " . $this->alias;
         }
-        return $this->database->table($table);
+        $db = null;
+        if ($this->useTran) {
+            $db = HaoDatabase::getContext()->get(HaoDatabase::RunContextKey);
+            if (!empty($db)) {
+                $this->lastDbName = 'tran';
+            }
+        }
+        if (empty($db)) {
+            switch ($connType) {
+                case self::WRITE:
+                    $db = $this->writeDatabase;
+                    if (!empty($db)) {
+                        $this->lastDbName = 'write';
+                    }
+                    break;
+                case self::READ:
+                    $db = $this->readDatabase;
+                    if (!empty($db)) {
+                        $this->lastDbName = 'read';
+                    }
+                    break;
+            }
+        }
+        if (empty($db)) {
+            $db = $this->database;
+            $this->lastDbName = 'default';
+        }
+        return $db->table($table);
     }
 
     public function setDatabase(Database|TransactionPacker $db)
@@ -213,13 +255,32 @@ abstract class Model
         $this->database = $db;
     }
 
-    public static function create(Database|TransactionPacker|null $db): static
+    public function setWriteDatabase(Database|TransactionPacker $db)
+    {
+        $this->writeDatabase = $db;
+    }
+
+    public function setReadDatabase(Database|TransactionPacker $db)
+    {
+        $this->readDatabase = $db;
+    }
+
+    public static function create(Database|TransactionPacker|null $db = null, $useTran = true): static
     {
         $obj = new static();
+        $obj->useTran = $useTran;
         if (!empty($db)) {
             $obj->setDatabase($db);
+            $obj->setWriteDatabase($db);
+            $obj->setReadDatabase($db);
         }
         return $obj;
+    }
+
+    public function notTran()
+    {
+        $this->useTran = false;
+        return $this;
     }
 
     public function getTable()
@@ -368,34 +429,15 @@ abstract class Model
     public function getLastSql(): string
     {
         $log = $this->getLastQueryLog();
-        if (empty($log['sql'])) {
+        if (empty($log)) {
             return '';
         }
-        $sql = $log['sql'];
-        if (!empty($log['bindings'])) {
-            reset($log['bindings']);
-            $firstKey = key($log['bindings']);
-            if (is_string($firstKey)) {
-                foreach ($log['bindings'] as $key => $v) {
-                    $sql = str_replace(':' . $key, '"' . $v . '"', $sql);
-                }
-            } else {
-                foreach ($log['bindings'] as $key => $v) {
-                    if (is_array($v)) {
-                        foreach ($v as &$vv) {
-                            $vv = addslashes($vv);
-                        }
-                        $v = implode('","', $v);
-                    } else {
-                        $v = addslashes($v);
-                    }
-                    $log['bindings'][$key] = '"' . $v . '"';
-                }
-                $sql = str_replace('?', '%s', $sql);
-                $sql = sprintf($sql, ...$log['bindings']);
-            }
-        }
-        return $sql;
+        return HaoDatabase::queryLogToSql($log);
+    }
+
+    public function getLastDbName()
+    {
+        return $this->lastDbName;
     }
 
 
@@ -421,7 +463,7 @@ abstract class Model
         if ($this->updateTimeField && !isset($data[$this->updateTimeField])) {
             $data[$this->updateTimeField] = $this->buildUpdateTime();
         }
-        $conn = $this->getConn();
+        $conn = $this->getConn(self::WRITE);
         $this->buildQuery($conn);
         $ret = $conn->updates($data)->rowCount();
         $this->lastQueryLog = $conn->queryLog();
@@ -441,7 +483,7 @@ abstract class Model
         if ($this->updateTimeField && !isset($data[$this->updateTimeField])) {
             $data[$this->updateTimeField] = $this->buildUpdateTime($createTime);
         }
-        $conn = $this->getConn();
+        $conn = $this->getConn(self::WRITE);
         $this->buildQuery($conn);
         $ret = $conn->insert($this->table, $data, $insert);
         $this->lastQueryLog = $conn->queryLog();
@@ -461,7 +503,7 @@ abstract class Model
         if ($this->updateTimeField && !isset($data[$this->updateTimeField])) {
             $data[$this->updateTimeField] = $this->buildUpdateTime($createTime);
         }
-        $conn = $this->getConn();
+        $conn = $this->getConn(self::WRITE);
         $this->buildQuery($conn);
         $ret = $conn->insert($this->table, $data, $insert);
         $id = $ret->lastInsertId();
@@ -484,7 +526,7 @@ abstract class Model
                 $data[$this->updateTimeField] = $this->buildUpdateTime($createTime);
             }
         }
-        $conn = $this->getConn();
+        $conn = $this->getConn(self::WRITE);
         $this->buildQuery($conn);
         $ret = $conn->batchInsert($this->table, $list, $insert)->rawCount();
         $this->lastQueryLog = $conn->queryLog();
@@ -496,7 +538,7 @@ abstract class Model
         if (empty($this->wheres)) {
             throw new \Exception('delete操作必须带条件');
         }
-        $conn = $this->getConn();
+        $conn = $this->getConn(self::WRITE);
         $this->buildQuery($conn);
         $ret = $conn->delete();
         $this->lastQueryLog = $conn->queryLog();
@@ -511,7 +553,7 @@ abstract class Model
 
     public function count()
     {
-        $conn = $this->getConn();
+        $conn = $this->getConn(self::READ);
         unset($this->fields);
         $this->buildQuery($conn);
         $ret = $conn->select('count(*) as mix_count')->first();
@@ -521,7 +563,7 @@ abstract class Model
 
     public function value(string $field)
     {
-        $conn = $this->getConn();
+        $conn = $this->getConn(self::READ);
         unset($this->fields);
         $this->fields = $field;
         $this->buildQuery($conn);
@@ -534,14 +576,42 @@ abstract class Model
         return $result->$field ?? null;
     }
 
-    public function __call($name, $arguments = [])
+    public function get()
     {
-        $conn = $this->getConn();
+        $conn = $this->getConn(self::READ);
         $this->buildQuery($conn);
-        $ret = call_user_func_array([$conn, $name], $arguments);
+        $ret = $conn->get();
         $this->lastQueryLog = $conn->queryLog();
         return $ret;
     }
+
+    public function first()
+    {
+        $conn = $this->getConn(self::READ);
+        $this->buildQuery($conn);
+        $ret = $conn->first();
+        $this->lastQueryLog = $conn->queryLog();
+        return $ret;
+    }
+
+    public function statement()
+    {
+        $conn = $this->getConn(self::READ);
+        $this->buildQuery($conn);
+        $ret = $conn->statement();
+        $this->lastQueryLog = $conn->queryLog();
+        return $ret;
+    }
+
+
+    // public function __call($name, $arguments = [])
+    // {
+    //     $conn = $this->getConn();
+    //     $this->buildQuery($conn);
+    //     $ret = call_user_func_array([$conn, $name], $arguments);
+    //     $this->lastQueryLog = $conn->queryLog();
+    //     return $ret;
+    // }
 
 
 }
