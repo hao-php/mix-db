@@ -3,6 +3,7 @@
 namespace Haoa\MixDb;
 
 use Haoa\Util\Context\BaseContext;
+use Haoa\Util\Context\RunContext;
 use Mix\Database\Database as MixDb;
 use Mix\Database\Transaction;
 
@@ -10,8 +11,6 @@ class Database extends MixDb
 {
 
     public const RunContextKey = 'obj_transaction_packer';
-
-    private static BaseContext $context;
 
     /**
      * @return TransactionPacker|Transaction
@@ -32,17 +31,9 @@ class Database extends MixDb
         return $obj;
     }
 
-    public static function setContext(BaseContext $ctx)
-    {
-        self::$context = $ctx;
-    }
-
     public static function getContext()
     {
-        if (empty(self::$context)) {
-            throw new \Exception('context is empty');
-        }
-        return self::$context;
+        return RunContext::getHandler();
     }
 
     public static function queryLogToSql($log)

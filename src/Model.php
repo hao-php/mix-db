@@ -584,6 +584,17 @@ abstract class Model
         return $result->$field ?? null;
     }
 
+    public function column(string $field)
+    {
+        $conn = $this->getConn(self::READ);
+        unset($this->fields);
+        $this->fields = $field;
+        $this->buildQuery($conn);
+        $result = (array)$conn->get();
+        $this->lastQueryLog = $conn->queryLog();
+        return array_column($result, $field);
+    }
+
     public function get()
     {
         $conn = $this->getConn(self::READ);
