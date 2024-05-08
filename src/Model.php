@@ -16,7 +16,9 @@ abstract class Model
 
     const READ = 2;
 
-    public string $table;
+    protected string $table;
+
+    public static string $tableName;
 
     /**
      * 主库, 必须设置
@@ -77,6 +79,7 @@ abstract class Model
 
     public function __construct()
     {
+        $this->table = static::$tableName;
     }
 
     protected function buildUpdateTime($time = null)
@@ -286,6 +289,11 @@ abstract class Model
     public function getTable()
     {
         return $this->table;
+    }
+
+    public function setTable($table)
+    {
+        $this->table = $table;
     }
 
     public function alias(string $alias)

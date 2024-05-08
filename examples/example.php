@@ -9,10 +9,11 @@ require __DIR__ . '/autoload.php';
 class UserMode extends Model
 {
 
-    public string $table = "user";
+    public static string $tableName = "user";
 
     public function __construct()
     {
+        parent::__construct();
     }
 
     protected function buildUpdateTime($time = null)
