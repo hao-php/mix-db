@@ -2,7 +2,6 @@
 
 use Haoa\MixDb\Database;
 use Haoa\MixDb\Model;
-use Haoa\Util\Context\ContextFactory;
 
 require __DIR__ . '/autoload.php';
 
@@ -61,7 +60,7 @@ class MyTest
     {
         $tx = $db->beginTransactionPacker();
         try {
-            $model = UserMode::create();
+            $model = UserMode::create($db);
 
             $id = $model->insertGetId([
                 'user_name' => 'test_' . rand(1, 100),
@@ -81,8 +80,18 @@ class MyTest
             var_dump($model->getLastDbName());
 
             $model2 = UserMode::create($db, false);
-            $model2->first();var_dump($model2->getLastSql());
+            $model2->first();
+            var_dump($model2->getLastSql());
             var_dump($model2->getLastDbName());
+            $model2->insertGetId([
+                'user_name' => 'test2_' . rand(1, 100),
+            ]);
+            var_dump($model2->getLastSql());
+            var_dump($model2->getLastDbName());
+
+            $db->insert('user', [
+                'user_name' => 'test3_' . rand(1, 100),
+            ]);
 
             $tx->rollback();
         } catch (\Throwable $e) {
@@ -116,8 +125,8 @@ $db = new Database('mysql:host=mysql8;port=3306;charset=utf8mb4;dbname=my_test',
 ]);
 $model = new UserMode();
 $model->setDatabase($db);
-$model->setReadDatabase($db);
-$model->setWriteDatabase($db);
+// $model->setReadDatabase($db);
+// $model->setWriteDatabase($db);
 
 // $ret = MyTest::select($model);
 // var_dump($ret, $model->getLastDbName());

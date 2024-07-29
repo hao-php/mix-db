@@ -2,15 +2,14 @@
 
 namespace Haoa\MixDb;
 
-use Haoa\Util\Context\BaseContext;
-use Haoa\Util\Context\RunContext;
 use Haoa\MixDatabase\Database as MixDb;
 use Haoa\MixDatabase\Transaction;
+use Haoa\Util\Context\RunContext;
 
 class Database extends MixDb
 {
 
-    public const RunContextKey = 'obj_transaction_packer';
+    public const RunContextKey = 'obj_transaction_packer:';
 
     /**
      * @return TransactionPacker|Transaction
@@ -19,12 +18,12 @@ class Database extends MixDb
     {
         $ctx = self::getContext();
         /** @var TransactionPacker $obj */
-        $obj = $ctx->get(self::RunContextKey);
+        $obj = $ctx->get(self::RunContextKey . $this->getObjectHash());
         if (empty($obj)) {
             $tx = parent::beginTransaction();
             $obj = new TransactionPacker($tx);
             $obj->addNum();
-            $ctx->set(self::RunContextKey, $obj);
+            $ctx->set(self::RunContextKey . $this->getObjectHash(), $obj);
         } else {
             $obj->addNum();
         }
@@ -63,6 +62,11 @@ class Database extends MixDb
             }
         }
         return $sql;
+    }
+
+    public function getObjectHash()
+    {
+        return spl_object_hash($this);
     }
 
 }

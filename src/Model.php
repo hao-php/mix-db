@@ -3,7 +3,6 @@
 namespace Haoa\MixDb;
 
 use Haoa\MixDatabase\ConnectionInterface;
-use Haoa\MixDatabase\Database;
 use Haoa\MixDb\Database as HaoDatabase;
 
 /**
@@ -36,7 +35,7 @@ abstract class Model
      * 是否使用事务对象
      * @var bool
      */
-    protected bool $useTran = true;
+    private bool $useTran = true;
 
     /**
      * 更新的时候自动写入修改时间
@@ -216,6 +215,9 @@ abstract class Model
 
     public function getConn(int $connType = 0): ConnectionInterface
     {
+        if (empty($this->database)) {
+            throw new \Exception("database is empty");
+        }
         if (empty($this->table)) {
             throw new \Exception("table is empty");
         }
@@ -225,27 +227,27 @@ abstract class Model
         }
         $db = null;
         if ($this->useTran) {
-            $db = HaoDatabase::getContext()->get(HaoDatabase::RunContextKey);
+            $db = HaoDatabase::getContext()->get(HaoDatabase::RunContextKey . $this->database->getObjectHash());
             if (!empty($db)) {
                 $this->lastDbName = 'tran';
             }
         }
-        if (empty($db)) {
-            switch ($connType) {
-                case self::WRITE:
-                    $db = $this->writeDatabase;
-                    if (!empty($db)) {
-                        $this->lastDbName = 'write';
-                    }
-                    break;
-                case self::READ:
-                    $db = $this->readDatabase;
-                    if (!empty($db)) {
-                        $this->lastDbName = 'read';
-                    }
-                    break;
-            }
-        }
+        // if (empty($db)) {
+        //     switch ($connType) {
+        //         case self::WRITE:
+        //             $db = $this->writeDatabase;
+        //             if (!empty($db)) {
+        //                 $this->lastDbName = 'write';
+        //             }
+        //             break;
+        //         case self::READ:
+        //             $db = $this->readDatabase;
+        //             if (!empty($db)) {
+        //                 $this->lastDbName = 'read';
+        //             }
+        //             break;
+        //     }
+        // }
         if (empty($db)) {
             $db = $this->database;
             $this->lastDbName = 'default';
@@ -258,33 +260,33 @@ abstract class Model
         $this->database = $db;
     }
 
-    public function setWriteDatabase(Database|TransactionPacker $db)
-    {
-        $this->writeDatabase = $db;
-    }
+    // public function setWriteDatabase(Database|TransactionPacker $db)
+    // {
+    //     $this->writeDatabase = $db;
+    // }
+    //
+    // public function setReadDatabase(Database|TransactionPacker $db)
+    // {
+    //     $this->readDatabase = $db;
+    // }
 
-    public function setReadDatabase(Database|TransactionPacker $db)
-    {
-        $this->readDatabase = $db;
-    }
-
-    public static function create(Database|TransactionPacker|null $db = null, $useTran = true): static
+    public static function create(Database|TransactionPacker $db): static
     {
         $obj = new static();
-        $obj->useTran = $useTran;
+        // $obj->useTran = $useTran;
         if (!empty($db)) {
             $obj->setDatabase($db);
-            $obj->setWriteDatabase($db);
-            $obj->setReadDatabase($db);
+            // $obj->setWriteDatabase($db);
+            // $obj->setReadDatabase($db);
         }
         return $obj;
     }
 
-    public function notTran()
-    {
-        $this->useTran = false;
-        return $this;
-    }
+    // public function notTran()
+    // {
+    //     $this->useTran = false;
+    //     return $this;
+    // }
 
     public function getTable()
     {
