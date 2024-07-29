@@ -2,7 +2,7 @@
 
 namespace Haoa\MixDb;
 
-use Mix\Database\Transaction;
+use Haoa\MixDatabase\Transaction;
 
 /**
  *

@@ -4,8 +4,8 @@ namespace Haoa\MixDb;
 
 use Haoa\Util\Context\BaseContext;
 use Haoa\Util\Context\RunContext;
-use Mix\Database\Database as MixDb;
-use Mix\Database\Transaction;
+use Haoa\MixDatabase\Database as MixDb;
+use Haoa\MixDatabase\Transaction;
 
 class Database extends MixDb
 {

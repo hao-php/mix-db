@@ -8,8 +8,8 @@
         }
     },
     "require": {
-        "mix/database": "^3.0",
         "haoa/util": "^1.0",
-        "ext-pdo": "*"
+        "ext-pdo": "*",
+        "haoa/mix-database": "^1.0"
     }
 }

@@ -114,7 +114,6 @@ $db = new Database('mysql:host=mysql8;port=3306;charset=utf8mb4;dbname=my_test',
     \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
     \PDO::ATTR_TIMEOUT => 5,
 ]);
-$db->setContext(ContextFactory::getContext());
 $model = new UserMode();
 $model->setDatabase($db);
 $model->setReadDatabase($db);

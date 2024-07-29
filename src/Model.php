@@ -2,8 +2,8 @@
 
 namespace Haoa\MixDb;
 
-use Mix\Database\ConnectionInterface;
-use Mix\Database\Database;
+use Haoa\MixDatabase\ConnectionInterface;
+use Haoa\MixDatabase\Database;
 use Haoa\MixDb\Database as HaoDatabase;
 
 /**
