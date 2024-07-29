@@ -9,7 +9,7 @@ use Haoa\Util\Context\RunContext;
 class Database extends MixDb
 {
 
-    public const RunContextKey = 'obj_transaction_packer:';
+    public const RUN_CONTEXT_TX_KEY = 'obj_transaction_packer:';
 
     /**
      * @return TransactionPacker|Transaction
@@ -18,12 +18,12 @@ class Database extends MixDb
     {
         $ctx = self::getContext();
         /** @var TransactionPacker $obj */
-        $obj = $ctx->get(self::RunContextKey . $this->getObjectHash());
+        $obj = $ctx->get(self::RUN_CONTEXT_TX_KEY . $this->getObjectHash());
         if (empty($obj)) {
             $tx = parent::beginTransaction();
-            $obj = new TransactionPacker($tx);
+            $obj = new TransactionPacker($tx, $this);
             $obj->addNum();
-            $ctx->set(self::RunContextKey . $this->getObjectHash(), $obj);
+            $ctx->set(self::RUN_CONTEXT_TX_KEY . $this->getObjectHash(), $obj);
         } else {
             $obj->addNum();
         }
@@ -34,6 +34,12 @@ class Database extends MixDb
     {
         return RunContext::getHandler();
     }
+
+    public function delContextTx()
+    {
+        self::getContext()->delete(self::RUN_CONTEXT_TX_KEY . $this->getObjectHash());
+    }
+
 
     public static function queryLogToSql($log)
     {

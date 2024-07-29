@@ -92,6 +92,7 @@ class MyTest
             $db->insert('user', [
                 'user_name' => 'test3_' . rand(1, 100),
             ]);
+            var_dump("db insert");
 
             $tx->rollback();
         } catch (\Throwable $e) {
@@ -108,7 +109,7 @@ class MyTest
         });
         try {
             self::transaction($db, $model);
-            $tx->commit();
+            $tx->rollback();
         } catch (\Throwable $e) {
             $tx->rollback();
         }
@@ -123,6 +124,7 @@ $db = new Database('mysql:host=mysql8;port=3306;charset=utf8mb4;dbname=my_test',
     \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
     \PDO::ATTR_TIMEOUT => 5,
 ]);
+$db->startPool(100, 1);
 $model = new UserMode();
 $model->setDatabase($db);
 // $model->setReadDatabase($db);
@@ -144,3 +146,17 @@ MyTest::transaction2($db, $model);
 
 //$ret = UserMode::create()->first();
 //var_dump($ret);
+
+// $tx = $db->beginTransaction();
+// try {
+//     $tx->insert('user', [
+//         'user_name' => 'test1_' . rand(1, 100),
+//     ]);
+//
+//     $db->insert('user', [
+//         'user_name' => 'test3_' . rand(1, 100),
+//     ]);
+//     $tx->rollback();
+// } catch (\Throwable $e) {
+//     $tx->rollback();
+// }

@@ -227,7 +227,7 @@ abstract class Model
         }
         $db = null;
         if ($this->useTran) {
-            $db = HaoDatabase::getContext()->get(HaoDatabase::RunContextKey . $this->database->getObjectHash());
+            $db = HaoDatabase::getContext()->get(HaoDatabase::RUN_CONTEXT_TX_KEY . $this->database->getObjectHash());
             if (!empty($db)) {
                 $this->lastDbName = 'tran';
             }
@@ -270,10 +270,13 @@ abstract class Model
     //     $this->readDatabase = $db;
     // }
 
-    public static function create(Database|TransactionPacker $db): static
+    public static function create(Database|TransactionPacker|null $db = null, $useTran = true): static
     {
+        if (empty($db)) {
+            throw new \Exception('db is empty');
+        }
         $obj = new static();
-        // $obj->useTran = $useTran;
+        $obj->useTran = $useTran;
         if (!empty($db)) {
             $obj->setDatabase($db);
             // $obj->setWriteDatabase($db);
@@ -282,11 +285,11 @@ abstract class Model
         return $obj;
     }
 
-    // public function notTran()
-    // {
-    //     $this->useTran = false;
-    //     return $this;
-    // }
+    public function notTran()
+    {
+        $this->useTran = false;
+        return $this;
+    }
 
     public function getTable()
     {

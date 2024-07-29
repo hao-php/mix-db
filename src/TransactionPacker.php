@@ -12,13 +12,16 @@ class TransactionPacker
 
     protected Transaction $tx;
 
+    protected Database $db;
+
     private int $beginNum = 0;
 
     public $commitEvents = [];
 
-    public function __construct(Transaction $tx)
+    public function __construct(Transaction $tx, Database $db)
     {
         $this->tx = $tx;
+        $this->db = $db;
     }
 
     /**
@@ -32,6 +35,7 @@ class TransactionPacker
             return;
         }
         $this->tx->commit();
+        $this->db->delContextTx();
         if (!empty($this->commitEvents)) {
             foreach ($this->commitEvents as $event) {
                 $event();
@@ -50,6 +54,7 @@ class TransactionPacker
             return;
         }
         $this->tx->rollback();
+        $this->db->delContextTx();
     }
 
     public function __call($name, $arguments = [])
