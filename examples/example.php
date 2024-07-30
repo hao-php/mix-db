@@ -92,7 +92,12 @@ class MyTest
             $db->insert('user', [
                 'user_name' => 'test3_' . rand(1, 100),
             ]);
-            var_dump("db insert");
+            var_dump("db insert useTran");
+
+            $db->insert('user', [
+                'user_name' => 'test4_' . rand(1, 100),
+            ], false);
+            var_dump("db insert notTran");
 
             $tx->rollback();
         } catch (\Throwable $e) {
@@ -142,20 +147,27 @@ $model->setDatabase($db);
 // $ret = MyTest::delete($model, 2);
 // var_dump($ret->rowCount(), $model->getLastSql(), $model->getLastDbName());
 
+// $ret = $db->raw("select * from user where id=?", [1]);
+// var_dump($ret->queryLog());
+
 MyTest::transaction2($db, $model);
 
-//$ret = UserMode::create()->first();
-//var_dump($ret);
+// $ret = UserMode::create()->first();
+// var_dump($ret);
 
-// $tx = $db->beginTransaction();
+// $tx = $db->beginTransactionPacker();
 // try {
 //     $tx->insert('user', [
 //         'user_name' => 'test1_' . rand(1, 100),
 //     ]);
 //
 //     $db->insert('user', [
-//         'user_name' => 'test3_' . rand(1, 100),
+//         'user_name' => 'test2_' . rand(1, 100),
 //     ]);
+//
+//     $db->insert('user', [
+//         'user_name' => 'test3_' . rand(1, 100),
+//     ], false);
 //     $tx->rollback();
 // } catch (\Throwable $e) {
 //     $tx->rollback();
