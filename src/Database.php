@@ -32,7 +32,7 @@ class Database
     /**
      * @return TransactionPacker
      */
-    public function beginTransactionPacker(): TransactionPacker
+    public function beginTransaction(): TransactionPacker
     {
         $ctx = self::getContext();
         /** @var TransactionPacker $obj */
@@ -48,10 +48,10 @@ class Database
         return $obj;
     }
 
-    private function beginTransaction()
-    {
-
-    }
+//    private function beginTransaction()
+//    {
+//
+//    }
 
     public static function getContext()
     {
