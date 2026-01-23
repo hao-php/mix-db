@@ -22,7 +22,7 @@ class Database
 
     private MixDb $db;
 
-    public const RUN_CONTEXT_TX_KEY = 'obj_transaction_packer:';
+    public const RUN_CONTEXT_TX_KEY = 'obj_transaction:';
 
     public function __construct(string $dsn, string $username, string $password, array $options = [])
     {
@@ -40,10 +40,10 @@ class Database
         if (empty($obj)) {
             $tx = $this->db->beginTransaction();
             $obj = new TransactionWrapper($tx, $this);
-            $obj->addNum();
+            $obj->incrementNestingLevel();
             $ctx->set(self::RUN_CONTEXT_TX_KEY . $this->getObjectHash(), $obj);
         } else {
-            $obj->addNum();
+            $obj->incrementNestingLevel();
         }
         return $obj;
     }

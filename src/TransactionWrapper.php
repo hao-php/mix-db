@@ -14,9 +14,12 @@ class TransactionWrapper
 
     protected Database $db;
 
-    private int $beginNum = 0;
+    /**
+     * @var int 嵌套等级
+     */
+    private int $nestingLevel = 0;
 
-    public $commitEvents = [];
+    public array $commitCallbacks = [];
 
     public function __construct(Transaction $tx, Database $db)
     {
@@ -30,15 +33,15 @@ class TransactionWrapper
      */
     public function commit()
     {
-        $this->beginNum--;
-        if ($this->beginNum > 0) {
+        $this->nestingLevel--;
+        if ($this->nestingLevel > 0) {
             return;
         }
         $this->tx->commit();
         $this->db->delContextTx();
-        if (!empty($this->commitEvents)) {
-            foreach ($this->commitEvents as $event) {
-                $event();
+        if (!empty($this->commitCallbacks)) {
+            foreach ($this->commitCallbacks as $callback) {
+                $callback();
             }
         }
     }
@@ -49,8 +52,8 @@ class TransactionWrapper
      */
     public function rollback()
     {
-        $this->beginNum--;
-        if ($this->beginNum > 0) {
+        $this->nestingLevel--;
+        if ($this->nestingLevel > 0) {
             return;
         }
         $this->tx->rollback();
@@ -62,14 +65,19 @@ class TransactionWrapper
         return call_user_func_array([$this->tx, $name], $arguments);
     }
 
-    public function addNum()
+    public function incrementNestingLevel()
     {
-        $this->beginNum++;
+        $this->nestingLevel++;
     }
 
-    public function addCommitEvent($event)
+    /**
+     * 添加事务提交后执行的回调函数, 将在commit后执行
+     * @param callable $callback
+     * @return void
+     */
+    public function addCommitCallback(callable $callback)
     {
-        $this->commitEvents[] = $event;
+        $this->commitCallbacks[] = $callback;
     }
 
 }

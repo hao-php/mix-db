@@ -58,7 +58,7 @@ class MyTest
 
     public static function transaction(Database $db, UserMode $model)
     {
-        $tx = $db->beginTransactionPacker();
+        $tx = $db->beginTransaction();
         try {
             $model = UserMode::create($db);
 
@@ -108,9 +108,9 @@ class MyTest
 
     public static function transaction2(Database $db, UserMode $model)
     {
-        $tx = $db->beginTransactionPacker();
-        $tx->addCommitEvent(function () {
-            var_dump("CommitEvent");
+        $tx = $db->beginTransaction();
+        $tx->addCommitCallback(function () {
+            var_dump("CommitCallback");
         });
         try {
             self::transaction($db, $model);
@@ -155,7 +155,7 @@ MyTest::transaction2($db, $model);
 // $ret = UserMode::create()->first();
 // var_dump($ret);
 
-// $tx = $db->beginTransactionPacker();
+// $tx = $db->beginTransaction();
 // try {
 //     $tx->insert('user', [
 //         'user_name' => 'test1_' . rand(1, 100),
