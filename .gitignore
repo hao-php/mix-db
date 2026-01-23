@@ -24,3 +24,4 @@ vendor/
 phpunit.phar
 # local phpunit config
 /phpunit.xml
+/AGENTS.md

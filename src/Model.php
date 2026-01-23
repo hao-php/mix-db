@@ -541,7 +541,7 @@ abstract class Model
         }
         $conn = $this->getConn(self::WRITE);
         $this->buildQuery($conn);
-        $ret = $conn->batchInsert($this->table, $list, $insert)->rawCount();
+        $ret = $conn->batchInsert($this->table, $list, $insert)->rowCount();
         $this->lastQueryLog = $conn->queryLog();
         return $ret;
     }
