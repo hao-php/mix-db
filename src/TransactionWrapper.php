@@ -7,7 +7,7 @@ use Haoa\MixDatabase\Transaction;
 /**
  *
  */
-class TransactionPacker
+class TransactionWrapper
 {
 
     protected Transaction $tx;

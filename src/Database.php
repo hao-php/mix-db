@@ -30,16 +30,16 @@ class Database
     }
 
     /**
-     * @return TransactionPacker
+     * @return TransactionWrapper
      */
-    public function beginTransaction(): TransactionPacker
+    public function beginTransaction(): TransactionWrapper
     {
         $ctx = self::getContext();
-        /** @var TransactionPacker $obj */
+        /** @var TransactionWrapper $obj */
         $obj = $ctx->get(self::RUN_CONTEXT_TX_KEY . $this->getObjectHash());
         if (empty($obj)) {
             $tx = $this->db->beginTransaction();
-            $obj = new TransactionPacker($tx, $this);
+            $obj = new TransactionWrapper($tx, $this);
             $obj->addNum();
             $ctx->set(self::RUN_CONTEXT_TX_KEY . $this->getObjectHash(), $obj);
         } else {
@@ -64,7 +64,7 @@ class Database
     }
 
     /**
-     * @return TransactionPacker|null
+     * @return TransactionWrapper|null
      */
     public function getContextTx()
     {
@@ -108,7 +108,7 @@ class Database
 
     /**
      * @param $useTran
-     * @return MixDb|TransactionPacker
+     * @return MixDb|TransactionWrapper
      */
     private function getHandler($useTran = true)
     {

@@ -21,13 +21,13 @@ abstract class Model
 
     /**
      * 主库, 必须设置
-     * @var Database|TransactionPacker
+     * @var Database|TransactionWrapper
      */
-    protected Database|TransactionPacker $database;
+    protected Database|TransactionWrapper $database;
 
-    protected Database|TransactionPacker|null $writeDatabase = null;
+    protected Database|TransactionWrapper|null $writeDatabase = null;
 
-    protected Database|TransactionPacker|null $readDatabase = null;
+    protected Database|TransactionWrapper|null $readDatabase = null;
 
     protected $lastDbName = '';
 
@@ -255,7 +255,7 @@ abstract class Model
         return $db->table($table);
     }
 
-    public function setDatabase(Database|TransactionPacker $db)
+    public function setDatabase(Database|TransactionWrapper $db)
     {
         $this->database = $db;
     }
@@ -270,7 +270,7 @@ abstract class Model
     //     $this->readDatabase = $db;
     // }
 
-    public static function create(Database|TransactionPacker|null $db = null, $useTran = true): static
+    public static function create(Database|TransactionWrapper|null $db = null, $useTran = true): static
     {
         if (empty($db)) {
             throw new \Exception('db is empty');
