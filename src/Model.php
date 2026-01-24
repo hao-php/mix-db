@@ -138,11 +138,11 @@ abstract class Model
         return $connection;
     }
 
-    protected function buildUpdateTime($time = null)
+    protected function buildUpdateTime($createTime = null)
     {
         // 创建的时候, 修改时间使用创建时间
-        if (!empty($time)) {
-            return $time;
+        if (!empty($createTime)) {
+            return $createTime;
         }
         return time();
     }
@@ -274,7 +274,7 @@ abstract class Model
      * 获取数据库连接
      *
      * @param int $connType 连接类型：WRITE(1) 或 READ(2)
-     * @return mixed 返回 ConnectionInterface 或具体的 Database/TransactionWrapper
+     * @return ConnectionInterface
      */
     public function getConn(int $connType = 0)
     {
@@ -317,6 +317,11 @@ abstract class Model
 //        return $this;
 //    }
 
+    /**
+     * @param Database|TransactionWrapper $db
+     * @param Database|TransactionWrapper|null $readDatabase
+     * @return static
+     */
     public static function newInstance(Database|TransactionWrapper $db, Database|TransactionWrapper $readDatabase = null): static
     {
         $obj = new static();
