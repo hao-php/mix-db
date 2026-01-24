@@ -95,11 +95,12 @@ class MyTest
         var_dump($arr);
     }
 
-    public static function transaction(Database $db, UserMode $model)
+    public static function transaction(Database $db, Database $readDb, UserMode $model)
     {
         $tx = $db->beginTransaction();
         try {
-            $model = UserMode::create($db);
+            echo "\n=====================default db=========================\n";
+            $model = UserMode::newInstance($db);
 
             $id = $model->insertGetId([
                 'user_name' => 'test_' . rand(1, 100),
@@ -117,8 +118,10 @@ class MyTest
             // var_dump($ret, $model->getLastQueryLog());
             var_dump($model->getLastSql());
             var_dump($model->getLastConnectionType());
+            echo "=====================default db=========================\n";
 
-            $model2 = UserMode::create($db);
+            echo "=====================read db=========================\n";
+            $model2 = UserMode::newInstance($readDb);
             $model2->first();
             var_dump($model2->getLastSql());
             var_dump($model2->getLastConnectionType());
@@ -127,16 +130,7 @@ class MyTest
             ]);
             var_dump($model2->getLastSql());
             var_dump($model2->getLastConnectionType());
-
-            $db->insert('user', [
-                'user_name' => 'test3_' . rand(1, 100),
-            ]);
-            var_dump("db insert useTran");
-
-            $db->insert('user', [
-                'user_name' => 'test4_' . rand(1, 100),
-            ], false);
-            var_dump("db insert notTran");
+            echo "=====================read db=========================\n";
 
             $tx->rollback();
         } catch (\Throwable $e) {
@@ -145,15 +139,16 @@ class MyTest
         }
     }
 
-    public static function transaction2(Database $db, UserMode $model)
+    public static function transaction2(Database $db, Database $readDb, UserMode $model)
     {
         $tx = $db->beginTransaction();
         $tx->addCommitCallback(function () {
             var_dump("CommitCallback");
         });
         try {
-            self::transaction($db, $model);
-            $tx->rollback();
+            self::transaction($db, $readDb, $model);
+            $tx->commit();
+//            $tx->rollback();
         } catch (\Throwable $e) {
             $tx->rollback();
         }
@@ -176,9 +171,7 @@ $readDb = new Database('mysql:host=mysql8;port=3306;charset=utf8mb4;dbname=my_te
     \PDO::ATTR_TIMEOUT => 5,
 ]);
 $readDb->startPool(100, 1);
-$model = new UserMode();
-$model->setDatabase($db);
-$model->setReadDatabase($readDb);
+$model = UserMode::newInstance($db, $readDb);
 
 //$id = MyTest::insert($model);
 //MyTest::println('insert', $id, $model->getLastSql(), $model->getLastConnectionType());
@@ -195,17 +188,14 @@ $model->setReadDatabase($readDb);
 //MyTest::read($model, $id);
 //echo "=================================================================\n";
 
-$ret = $model->whereString("1=1")->delete();
-MyTest::println('deleteAll', $ret, $model->getLastSql(), $model->getLastConnectionType());
-MyTest::read($model, 0);
+//$ret = $model->whereString("1=1")->delete();
+//MyTest::println('deleteAll', $ret, $model->getLastSql(), $model->getLastConnectionType());
+//MyTest::read($model, 0);
 
 // $ret = $db->raw("select * from user where id=?", [1])->first();
 // var_dump($ret->queryLog());
 
-//MyTest::transaction2($db, $model);
-
-// $ret = UserMode::create()->first();
-// var_dump($ret);
+MyTest::transaction2($db, $readDb, $model);
 
 // $tx = $db->beginTransaction();
 // try {

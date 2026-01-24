@@ -297,8 +297,8 @@ abstract class Model
         return $connection->table($table);
     }
 
-    public function setDatabase(Database|TransactionWrapper $db): self
-    {
+//    public function setDatabase(Database|TransactionWrapper $db): self
+//    {
 //        if ($this->database != null) {
 //            $transaction = HaoDatabase::getContext()->get(
 //                HaoDatabase::RUN_CONTEXT_TX_KEY . $this->database->getObjectHash()
@@ -307,21 +307,21 @@ abstract class Model
 //                throw new \LogicException('Cannot change database connection while in transaction');
 //            }
 //        }
-        $this->database = $db;
-        return $this;
-    }
+//        $this->database = $db;
+//        return $this;
+//    }
+//
+//    public function setReadDatabase(Database $db): self
+//    {
+//        $this->readDatabase = $db;
+//        return $this;
+//    }
 
-    public function setReadDatabase(Database $db): self
-    {
-        $this->readDatabase = $db;
-        return $this;
-    }
-
-    public static function create(Database|TransactionWrapper $db): static
+    public static function newInstance(Database|TransactionWrapper $db, Database|TransactionWrapper $readDatabase = null): static
     {
         $obj = new static();
         $obj->database = $db;
-
+        $obj->readDatabase = $readDatabase;
         return $obj;
     }
 
