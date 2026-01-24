@@ -48,12 +48,7 @@ class Database
         return $obj;
     }
 
-//    private function beginTransaction()
-//    {
-//
-//    }
-
-    public static function getContext()
+    public static function getContext(): \Haoa\Util\Context\BaseContext
     {
         return RunContext::getHandler();
     }
@@ -107,34 +102,34 @@ class Database
     }
 
     /**
-     * @param $useTran
      * @return MixDb|TransactionWrapper
      */
-    private function getHandler($useTran = true)
+    private function getHandler()
     {
-        if ($useTran) {
-            $obj = $this->getContextTx();
-            if (!empty($obj)) {
-                return $obj;
-            }
+        // 如果在事务中, 则使用事务对象
+        $obj = $this->getContextTx();
+        if (!empty($obj)) {
+            return $obj;
         }
+
+        // 返回普通的db对象
         return $this->db;
     }
 
     /**
      * @return ConnectionInterface
      */
-    public function raw(string $sql, array $values, $useTran = true): ConnectionInterface
+    public function raw(string $sql, array $values): ConnectionInterface
     {
-        return $this->getHandler($useTran)->raw($sql, ...$values);
+        return $this->getHandler()->raw($sql, ...$values);
     }
 
     /**
      * @return ConnectionInterface
      */
-    public function exec(string $sql, array $values, $useTran = true): ConnectionInterface
+    public function exec(string $sql, array $values): ConnectionInterface
     {
-        return $this->getHandler($useTran)->exec($sql, ...$values);
+        return $this->getHandler()->exec($sql, ...$values);
     }
 
     /**
@@ -145,9 +140,9 @@ class Database
      * @param string $insert
      * @return ConnectionInterface
      */
-    public function insert(string $table, array $data, $useTran = true, string $insert = 'INSERT INTO'): ConnectionInterface
+    public function insert(string $table, array $data, string $insert = 'INSERT INTO'): ConnectionInterface
     {
-        return $this->getHandler($useTran)->insert($table, $data, $insert);
+        return $this->getHandler()->insert($table, $data, $insert);
     }
 
     /**
@@ -157,9 +152,9 @@ class Database
      * @param string $insert
      * @return ConnectionInterface
      */
-    public function batchInsert(string $table, array $data, $useTran = true, string $insert = 'INSERT INTO'): ConnectionInterface
+    public function batchInsert(string $table, array $data, string $insert = 'INSERT INTO'): ConnectionInterface
     {
-        return $this->getHandler($useTran)->batchInsert($table, $data, $insert);
+        return $this->getHandler()->batchInsert($table, $data, $insert);
     }
 
 
@@ -168,9 +163,9 @@ class Database
      * @param string $table
      * @return ConnectionInterface
      */
-    public function table(string $table, $useTran = true): ConnectionInterface
+    public function table(string $table): ConnectionInterface
     {
-        return $this->getHandler($useTran)->table($table);
+        return $this->getHandler()->table($table);
     }
 
     public function __call($name, $arguments = [])

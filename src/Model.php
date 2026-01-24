@@ -20,22 +20,33 @@ abstract class Model
     public static string $tableName;
 
     /**
-     * 主库, 必须设置
+     * 主数据库连接（必须设置）
+     * 用于写操作和默认操作
      * @var Database|TransactionWrapper
      */
     protected Database|TransactionWrapper $database;
 
-    protected Database|TransactionWrapper|null $writeDatabase = null;
-
-    protected Database|TransactionWrapper|null $readDatabase = null;
-
-    protected $lastDbName = '';
+    /**
+     * 读数据库连接（可选，用于读写分离）
+     * @var Database|null
+     */
+    protected ?Database $readDatabase = null;
 
     /**
-     * 是否使用事务对象
+     * 当前连接类型（用于调试）
+     * - 'default': 主连接
+     * - 'write': 写连接
+     * - 'read': 读连接
+     * - 'transaction': 事务连接
+     * @var string
+     */
+    protected string $lastConnectionType = '';
+
+    /**
+     * 是否检查事务（默认开启）
      * @var bool
      */
-    private bool $useTran = true;
+    private bool $checkTransaction = true;
 
     /**
      * 更新的时候自动写入修改时间
@@ -79,6 +90,52 @@ abstract class Model
     public function __construct()
     {
         $this->table = static::$tableName;
+    }
+
+    /**
+     * 验证数据库和表名
+     * @throws \LogicException
+     */
+    private function validateDatabaseAndTable(): void
+    {
+        if (empty($this->database)) {
+            throw new \LogicException('Database connection is not set');
+        }
+        if (empty($this->table)) {
+            throw new \LogicException('Table name is not set');
+        }
+    }
+
+    /**
+     * 构建带别名的表名
+     */
+    private function buildTableWithAlias(): string
+    {
+        return empty($this->alias)
+            ? $this->table
+            : "{$this->table} AS {$this->alias}";
+    }
+
+    /**
+     * 根据连接类型选择数据库
+     */
+    private function selectConnectionByType(int $connType): Database|TransactionWrapper
+    {
+        switch ($connType) {
+            case self::READ:
+                // 读操作：优先使用读连接，如果没有则使用主连接
+                $connection = $this->readDatabase ?? $this->database;
+                $this->lastConnectionType = 'read';
+                break;
+
+            case self::WRITE:
+            default:
+                // 默认使用主连接
+                $connection = $this->database;
+                $this->lastConnectionType = 'default';
+        }
+
+        return $connection;
     }
 
     protected function buildUpdateTime($time = null)
@@ -213,82 +270,59 @@ abstract class Model
         $this->reset();
     }
 
-    public function getConn(int $connType = 0): ConnectionInterface
+    /**
+     * 获取数据库连接
+     *
+     * @param int $connType 连接类型：WRITE(1) 或 READ(2)
+     * @return mixed 返回 ConnectionInterface 或具体的 Database/TransactionWrapper
+     */
+    public function getConn(int $connType = 0)
     {
-        if (empty($this->database)) {
-            throw new \Exception("database is empty");
+        $this->validateDatabaseAndTable();
+
+        $table = $this->buildTableWithAlias();
+
+        //  如果在事务中, 则使用事务对象
+        $transaction = HaoDatabase::getContext()->get(
+            HaoDatabase::RUN_CONTEXT_TX_KEY . $this->database->getObjectHash()
+        );
+        if ($transaction !== null) {
+            $this->lastConnectionType = 'transaction';
+            return $transaction->table($table);
         }
-        if (empty($this->table)) {
-            throw new \Exception("table is empty");
-        }
-        $table = $this->table;
-        if (!empty($this->alias)) {
-            $table .= " AS " . $this->alias;
-        }
-        $db = null;
-        if ($this->useTran) {
-            $db = HaoDatabase::getContext()->get(HaoDatabase::RUN_CONTEXT_TX_KEY . $this->database->getObjectHash());
-            if (!empty($db)) {
-                $this->lastDbName = 'tran';
-            }
-        }
-        // if (empty($db)) {
-        //     switch ($connType) {
-        //         case self::WRITE:
-        //             $db = $this->writeDatabase;
-        //             if (!empty($db)) {
-        //                 $this->lastDbName = 'write';
-        //             }
-        //             break;
-        //         case self::READ:
-        //             $db = $this->readDatabase;
-        //             if (!empty($db)) {
-        //                 $this->lastDbName = 'read';
-        //             }
-        //             break;
-        //     }
-        // }
-        if (empty($db)) {
-            $db = $this->database;
-            $this->lastDbName = 'default';
-        }
-        return $db->table($table);
+
+        // 2. 根据连接类型选择数据库
+        $connection = $this->selectConnectionByType($connType);
+
+        return $connection->table($table);
     }
 
-    public function setDatabase(Database|TransactionWrapper $db)
+    public function setDatabase(Database|TransactionWrapper $db): self
     {
+//        if ($this->database != null) {
+//            $transaction = HaoDatabase::getContext()->get(
+//                HaoDatabase::RUN_CONTEXT_TX_KEY . $this->database->getObjectHash()
+//            );
+//            if ($transaction !== null) {
+//                throw new \LogicException('Cannot change database connection while in transaction');
+//            }
+//        }
         $this->database = $db;
-    }
-
-    // public function setWriteDatabase(Database|TransactionPacker $db)
-    // {
-    //     $this->writeDatabase = $db;
-    // }
-    //
-    // public function setReadDatabase(Database|TransactionPacker $db)
-    // {
-    //     $this->readDatabase = $db;
-    // }
-
-    public static function create(Database|TransactionWrapper|null $db = null, $useTran = true): static
-    {
-        if (empty($db)) {
-            throw new \Exception('db is empty');
-        }
-        $obj = new static();
-        $obj->useTran = $useTran;
-        if (!empty($db)) {
-            $obj->setDatabase($db);
-            // $obj->setWriteDatabase($db);
-            // $obj->setReadDatabase($db);
-        }
-        return $obj;
-    }
-
-    public function notTran()
-    {
-        $this->useTran = false;
         return $this;
+    }
+
+    public function setReadDatabase(Database $db): self
+    {
+        $this->readDatabase = $db;
+        return $this;
+    }
+
+    public static function create(Database|TransactionWrapper $db): static
+    {
+        $obj = new static();
+        $obj->database = $db;
+
+        return $obj;
     }
 
     public function getTable()
@@ -448,9 +482,15 @@ abstract class Model
         return HaoDatabase::queryLogToSql($log);
     }
 
-    public function getLastDbName()
+    /**
+     * 获取最后使用的连接类型
+     * - 'default': 主连接
+     * - 'read': 读连接
+     * - 'transaction': 事务连接
+     */
+    public function getLastConnectionType(): string
     {
-        return $this->lastDbName;
+        return $this->lastConnectionType;
     }
 
 
@@ -483,9 +523,6 @@ abstract class Model
         return $ret;
     }
 
-    /**
-     *
-     */
     public function insert(array $data, $insert = 'INSERT INTO'): ConnectionInterface
     {
         $createTime = null;
@@ -546,6 +583,9 @@ abstract class Model
         return $ret;
     }
 
+    /**
+     * @return int
+     */
     public function delete()
     {
         if (empty($this->wheres)) {
@@ -555,7 +595,7 @@ abstract class Model
         $this->buildQuery($conn);
         $ret = $conn->delete();
         $this->lastQueryLog = $conn->queryLog();
-        return $ret;
+        return $ret->rowCount();
     }
 
     public function debug(\Closure $debug)
@@ -564,13 +604,20 @@ abstract class Model
         return $this;
     }
 
+    /**
+     * @return int
+     */
     public function count()
     {
         $conn = $this->getConn(self::READ);
         unset($this->fields);
         $this->buildQuery($conn);
         $ret = $conn->select('count(*) as mix_count')->first();
+        if (empty($ret)) {
+            return 0;
+        }
         $this->lastQueryLog = $conn->queryLog();
+        $ret = (array)$ret;
         return (int)($ret['mix_count'] ?? 0);
     }
 
@@ -581,6 +628,9 @@ abstract class Model
         $this->fields = $field;
         $this->buildQuery($conn);
         $result = $conn->first();
+        if (empty($result)) {
+            return null;
+        }
         $this->lastQueryLog = $conn->queryLog();
         $isArray = is_array($result);
         if ($isArray) {
@@ -609,12 +659,18 @@ abstract class Model
         return $ret;
     }
 
+    /**
+     * @return mixed|false
+     */
     public function first()
     {
         $conn = $this->getConn(self::READ);
         $this->buildQuery($conn);
         $ret = $conn->first();
         $this->lastQueryLog = $conn->queryLog();
+        if ($ret === false) {
+            return null;
+        }
         return $ret;
     }
 

@@ -34,7 +34,7 @@ class UserMode extends Model
 class MyTest
 {
 
-    public static function select(UserMode $model)
+    public static function first(UserMode $model)
     {
         return $model->first();
     }
@@ -56,6 +56,45 @@ class MyTest
         return $model->where('id', $id)->delete();
     }
 
+    public static function count(UserMode $model)
+    {
+        return $model->count();
+    }
+
+    public static function column(UserMode $model)
+    {
+        return $model->column('user_name');
+    }
+
+    public static function read(UserMode $model, $id)
+    {
+        $ret = MyTest::first($model);
+        self::println('first', $ret, $model->getLastSql(), $model->getLastConnectionType());
+
+        $ret = $model->get();
+        self::println('get', $ret, $model->getLastSql(), $model->getLastConnectionType());
+
+        $ret = $model->value('user_name');
+        self::println('value', $ret, $model->getLastSql(), $model->getLastConnectionType());
+
+        $ret = MyTest::count($model);
+        self::println('count', $ret, $model->getLastSql(), $model->getLastConnectionType());
+
+        $ret = MyTest::column($model);
+        self::println('column', $ret, $model->getLastSql(), $model->getLastConnectionType());
+    }
+
+    public static function println($method, $ret, $sql, $connectionType)
+    {
+        $arr = [
+            'method' => $method,
+            'ret' => $ret,
+            'sql' => $sql,
+            'connectionType' => $connectionType,
+        ];
+        var_dump($arr);
+    }
+
     public static function transaction(Database $db, UserMode $model)
     {
         $tx = $db->beginTransaction();
@@ -67,27 +106,27 @@ class MyTest
             ]);
             // var_dump($model->getLastQueryLog());
             var_dump($model->getLastSql());
-            var_dump($model->getLastDbName());
+            var_dump($model->getLastConnectionType());
 
             $ret = $model->where('user_name', 'aa?"')->first();
             // var_dump($ret, $model->getLastQueryLog());
             var_dump($model->getLastSql());
-            var_dump($model->getLastDbName());
+            var_dump($model->getLastConnectionType());
 
             $ret = $model->where('id', 'in', [1, 2, 3])->first();
             // var_dump($ret, $model->getLastQueryLog());
             var_dump($model->getLastSql());
-            var_dump($model->getLastDbName());
+            var_dump($model->getLastConnectionType());
 
-            $model2 = UserMode::create($db, false);
+            $model2 = UserMode::create($db);
             $model2->first();
             var_dump($model2->getLastSql());
-            var_dump($model2->getLastDbName());
+            var_dump($model2->getLastConnectionType());
             $model2->insertGetId([
                 'user_name' => 'test2_' . rand(1, 100),
             ]);
             var_dump($model2->getLastSql());
-            var_dump($model2->getLastDbName());
+            var_dump($model2->getLastConnectionType());
 
             $db->insert('user', [
                 'user_name' => 'test3_' . rand(1, 100),
@@ -124,33 +163,46 @@ class MyTest
 
 }
 
-$db = new Database('mysql:host=mysql8;port=3306;charset=utf8mb4;dbname=my_test', 'test', '123456', [
+$db = new Database('mysql:host=mysql8;port=3306;charset=utf8mb4;dbname=my_test', 'root', 'dcqhmsql', [
     \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
     \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
     \PDO::ATTR_TIMEOUT => 5,
 ]);
 $db->startPool(100, 1);
+
+$readDb = new Database('mysql:host=mysql8;port=3306;charset=utf8mb4;dbname=my_test', 'root', 'dcqhmsql', [
+    \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+//    \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+    \PDO::ATTR_TIMEOUT => 5,
+]);
+$readDb->startPool(100, 1);
 $model = new UserMode();
 $model->setDatabase($db);
-// $model->setReadDatabase($db);
-// $model->setWriteDatabase($db);
+$model->setReadDatabase($readDb);
 
-// $ret = MyTest::select($model);
-// var_dump($ret, $model->getLastDbName());
+//$id = MyTest::insert($model);
+//MyTest::println('insert', $id, $model->getLastSql(), $model->getLastConnectionType());
+//MyTest::read($model, $id);
+//echo "=================================================================\n";
+//
+//$ret = MyTest::update($model, $id);
+//MyTest::println('update', $id, $model->getLastSql(), $model->getLastConnectionType());
+//MyTest::read($model, $id);
+//echo "=================================================================\n";
+//
+// $ret = MyTest::delete($model, $id);
+//MyTest::println('delete', $id, $model->getLastSql(), $model->getLastConnectionType());
+//MyTest::read($model, $id);
+//echo "=================================================================\n";
 
-// $ret = MyTest::insert($model);
-// var_dump($ret, $model->getLastDbName());
+$ret = $model->whereString("1=1")->delete();
+MyTest::println('deleteAll', $ret, $model->getLastSql(), $model->getLastConnectionType());
+MyTest::read($model, 0);
 
-// $ret = MyTest::update($model, 2);
-// var_dump($ret, $model->getLastSql(), $model->getLastDbName());
-
-// $ret = MyTest::delete($model, 2);
-// var_dump($ret->rowCount(), $model->getLastSql(), $model->getLastDbName());
-
-// $ret = $db->raw("select * from user where id=?", [1]);
+// $ret = $db->raw("select * from user where id=?", [1])->first();
 // var_dump($ret->queryLog());
 
-MyTest::transaction2($db, $model);
+//MyTest::transaction2($db, $model);
 
 // $ret = UserMode::create()->first();
 // var_dump($ret);
