@@ -152,7 +152,7 @@ abstract class Model
         return time();
     }
 
-    protected function reset()
+    protected function reset(): void
     {
         $this->alias = '';
         $this->wheres = [];
@@ -168,7 +168,7 @@ abstract class Model
         $this->debug = null;
     }
 
-    protected function buildWhere(...$where)
+    protected function buildWhere(...$where): array
     {
         $countWhere = count($where);
         if ($countWhere == 1) {
@@ -209,7 +209,7 @@ abstract class Model
         return ['(' . implode(' AND ', $stringArr) . ')', $values];
     }
 
-    protected function buildQuery(ConnectionInterface &$conn, $options = [])
+    protected function buildQuery(ConnectionInterface &$conn, array $options = []): void
     {
         if (!empty($this->wheres)) {
             foreach ($this->wheres as $where) {
@@ -335,7 +335,7 @@ abstract class Model
         return $this->table;
     }
 
-    public function setTable($table)
+    public function setTable(string $table): void
     {
         $this->table = $table;
     }
@@ -368,13 +368,13 @@ abstract class Model
         return $this;
     }
 
-    public function whereString(string $whereString, ...$values)
+    public function whereRaw(string $whereString, ...$values)
     {
         $this->wheres[] = [$whereString, $values];
         return $this;
     }
 
-    public function whereOr(...$where)
+    public function orWhere(...$where)
     {
         if (empty($where)) {
             return $this;
@@ -436,7 +436,7 @@ abstract class Model
         return $this;
     }
 
-    public function havingString(string $expr, ...$values)
+    public function havingRaw(string $expr, ...$values)
     {
         $this->havings[] = [$expr, $values];
         return $this;
@@ -528,7 +528,7 @@ abstract class Model
         return $ret;
     }
 
-    public function insert(array $data, $insert = 'INSERT INTO'): ConnectionInterface
+    public function insert(array $data, string $insert = 'INSERT INTO'): ConnectionInterface
     {
         $createTime = null;
         if ($this->createTimeField && !isset($data[$this->createTimeField])) {
@@ -548,7 +548,7 @@ abstract class Model
     /**
      *
      */
-    public function insertGetId(array $data, $insert = 'INSERT INTO'): string
+    public function insertGetId(array $data, string $insert = 'INSERT INTO'): string
     {
         $createTime = null;
         if ($this->createTimeField && !isset($data[$this->createTimeField])) {
@@ -569,7 +569,7 @@ abstract class Model
     /**
      * @return int 受影响行数
      */
-    public function batchInsert(array $list, $insert = 'INSERT INTO')
+    public function batchInsert(array $list, string $insert = 'INSERT INTO'): int
     {
         foreach ($list as &$data) {
             $createTime = $this->buildCreateTime();

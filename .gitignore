@@ -26,3 +26,16 @@ phpunit.phar
 /phpunit.xml
 /AGENTS.md
 /analysis
+
+# 测试配置文件（本地配置，不提交到 Git）
+tests/config/database.local.php
+
+# 测试覆盖率报告
+coverage/
+.phpunit.cache/
+
+# IDE 文件
+.vscode/
+*.swp
+*.swo
+*~
