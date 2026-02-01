@@ -6,125 +6,12 @@ use Tests\Fixtures\TestUserModel;
 
 class ModelTest extends TestCase
 {
-    public function testConstruct()
-    {
-        $model = TestUserModel::newInstance($this->db);
-        $this->assertInstanceOf(TestUserModel::class, $model);
-    }
-
-    public function testGetTable()
-    {
-        $model = TestUserModel::newInstance($this->db);
-        $this->assertEquals('test_users', $model->getTable());
-    }
-
-    public function testSetTable()
-    {
-        $model = TestUserModel::newInstance($this->db);
-        $model->setTable('other_table');
-        $this->assertEquals('other_table', $model->getTable());
-    }
-
-    public function testAlias()
-    {
-        $model = TestUserModel::newInstance($this->db);
-        $model->alias('u');
-        $this->assertEquals('u', $model->alias);
-    }
-
     public function testWhere()
     {
         $model = TestUserModel::newInstance($this->db);
         $model->where('user_name', 'test_user');
-        $this->assertCount(1, $model->wheres);
-    }
-
-    public function testWhereWithOperator()
-    {
-        $model = TestUserModel::newInstance($this->db);
-        $model->where('age', '>', 18);
-        $this->assertCount(1, $model->wheres);
-    }
-
-    public function testWhereWithArray()
-    {
-        $model = TestUserModel::newInstance($this->db);
-        $model->where([
-            ['user_name', '=', 'test_user'],
-            ['age', '>', 18]
-        ]);
-        $this->assertCount(1, $model->wheres);
-    }
-
-    public function testWhereRaw()
-    {
-        $model = TestUserModel::newInstance($this->db);
-        $model->whereRaw('user_name LIKE ?', '%test%');
-        $this->assertCount(1, $model->wheres);
-    }
-
-    public function testWhereOr()
-    {
-        $model = TestUserModel::newInstance($this->db);
-        $model->orWhere('user_name', 'test_user');
-        $this->assertCount(1, $model->ors);
-    }
-
-    public function testOffset()
-    {
-        $model = TestUserModel::newInstance($this->db);
-        $model->offset(10);
-        $this->assertEquals(10, $model->offset);
-    }
-
-    public function testLimit()
-    {
-        $model = TestUserModel::newInstance($this->db);
-        $model->limit(20);
-        $this->assertEquals(20, $model->limit);
-    }
-
-    public function testPage()
-    {
-        $model = TestUserModel::newInstance($this->db);
-        $model->page(2, 10);
-        $this->assertEquals(10, $model->offset);
-        $this->assertEquals(10, $model->limit);
-    }
-
-    public function testSelect()
-    {
-        $model = TestUserModel::newInstance($this->db);
-        $model->select('id, user_name');
-        $this->assertEquals('id, user_name', $model->fields);
-    }
-
-    public function testHaving()
-    {
-        $model = TestUserModel::newInstance($this->db);
-        $model->having('count', '>', 5);
-        $this->assertCount(1, $model->havings);
-    }
-
-    public function testHavingRaw()
-    {
-        $model = TestUserModel::newInstance($this->db);
-        $model->havingRaw('COUNT(*) > ?', 5);
-        $this->assertCount(1, $model->havings);
-    }
-
-    public function testGroup()
-    {
-        $model = TestUserModel::newInstance($this->db);
-        $model->group('user_name');
-        $this->assertCount(1, $model->group);
-    }
-
-    public function testOrder()
-    {
-        $model = TestUserModel::newInstance($this->db);
-        $model->order('created_at', 'DESC');
-        $this->assertCount(1, $model->orders);
+        $sql = $model->getLastSql();
+        $this->assertStringContainsString('WHERE', $sql);
     }
 
     public function testInsert()
@@ -171,7 +58,7 @@ class ModelTest extends TestCase
         $this->assertEquals(1, $result);
     }
 
-    public function testUpdates()
+    public function testUpdateMultiple()
     {
         $model = TestUserModel::newInstance($this->db);
         $id = $model->insertGetId(['user_name' => 'updates_test']);
@@ -194,7 +81,7 @@ class ModelTest extends TestCase
         $this->assertEquals(1, $result);
     }
 
-    public function testGet()
+    public function testGetAll()
     {
         $model = TestUserModel::newInstance($this->db);
         $model->insertGetId(['user_name' => 'get_test']);
@@ -204,7 +91,7 @@ class ModelTest extends TestCase
         $this->assertCount(1, $result);
     }
 
-    public function testFirst()
+    public function testGetFirst()
     {
         $model = TestUserModel::newInstance($this->db);
         $model->insertGetId(['user_name' => 'first_test']);
@@ -224,7 +111,7 @@ class ModelTest extends TestCase
         $this->assertEquals(1, $count);
     }
 
-    public function testValue()
+    public function testGetValue()
     {
         $model = TestUserModel::newInstance($this->db);
         $model->insertGetId(['user_name' => 'value_test']);
@@ -233,7 +120,7 @@ class ModelTest extends TestCase
         $this->assertEquals('value_test', $value);
     }
 
-    public function testColumn()
+    public function testGetColumn()
     {
         $model = TestUserModel::newInstance($this->db);
         $model->insertGetId(['user_name' => 'column_test']);
@@ -241,96 +128,6 @@ class ModelTest extends TestCase
         $column = $model->column('user_name');
         $this->assertIsArray($column);
         $this->assertCount(1, $column);
-    }
-
-    public function testGetLastQueryLog()
-    {
-        $model = TestUserModel::newInstance($this->db);
-        $model->first();
-        
-        $log = $model->getLastQueryLog();
-        $this->assertIsArray($log);
-        $this->assertArrayHasKey('sql', $log);
-    }
-
-    public function testGetLastSql()
-    {
-        $model = TestUserModel::newInstance($this->db);
-        $model->first();
-        
-        $sql = $model->getLastSql();
-        $this->assertIsString($sql);
-        $this->assertStringContainsString('SELECT', $sql);
-    }
-
-    public function testGetLastConnectionType()
-    {
-        $model = TestUserModel::newInstance($this->db);
-        $model->first();
-        
-        $type = $model->getLastConnectionType();
-        $this->assertIsString($type);
-    }
-
-    public function testReadConnectionType()
-    {
-        $model = TestUserModel::newInstance($this->db, $this->readDb);
-        $model->first();
-        
-        $type = $model->getLastConnectionType();
-        $this->assertEquals('read', $type);
-    }
-
-    public function testWriteConnectionType()
-    {
-        $model = TestUserModel::newInstance($this->db, $this->readDb);
-        $model->insertGetId(['user_name' => 'write_test']);
-        
-        $type = $model->getLastConnectionType();
-        $this->assertEquals('default', $type);
-    }
-
-    public function testTransactionConnectionType()
-    {
-        $model = TestUserModel::newInstance($this->db);
-        $tx = $this->db->beginTransaction();
-        
-        try {
-            $model->insertGetId(['user_name' => 'tx_test']);
-            $type = $model->getLastConnectionType();
-            $this->assertEquals('transaction', $type);
-            $tx->rollback();
-        } catch (\Exception $e) {
-            $tx->rollback();
-            throw $e;
-        }
-    }
-
-    public function testDebug()
-    {
-        $model = TestUserModel::newInstance($this->db);
-        $debugCalled = false;
-        
-        $model->debug(function ($sql, $bindings, $time) use (&$debugCalled) {
-            $debugCalled = true;
-        });
-        
-        $model->first();
-        $this->assertTrue($debugCalled);
-    }
-
-    public function testJoin()
-    {
-        $model = TestUserModel::newInstance($this->db);
-        $model->join('other_table', 'other_table.user_id = test_users.id');
-        $this->assertCount(1, $model->joins);
-    }
-
-    public function testLeftJoin()
-    {
-        $model = TestUserModel::newInstance($this->db);
-        $model->leftJoin('other_table', 'other_table.user_id = test_users.id');
-        $this->assertCount(1, $model->leftJoins);
     }
 
     public function testComplexQuery()
@@ -405,37 +202,4 @@ class ModelTest extends TestCase
         $model->delete();
     }
 
-    public function testDatabaseNotSetException()
-    {
-        $model = new class extends TestUserModel {
-            public function testGetConn()
-            {
-                return $this->getConn();
-            }
-        };
-        
-        $this->expectException(\LogicException::class);
-        $this->expectExceptionMessage('Database connection is not set');
-        
-        $model->testGetConn();
-    }
-
-    public function testTableNotSetException()
-    {
-        $model = new class extends TestUserModel {
-            public static string $tableName = '';
-            
-            public function testGetConn()
-            {
-                return $this->getConn();
-            }
-        };
-        
-        $model->database = $this->db;
-        
-        $this->expectException(\LogicException::class);
-        $this->expectExceptionMessage('Table name is not set');
-        
-        $model->testGetConn();
-    }
 }

@@ -22,7 +22,7 @@ class Database
 
     private MixDb $db;
 
-    public const RUN_CONTEXT_TX_KEY = 'obj_transaction:';
+    public const RUN_CONTEXT_TX_KEY = 'haoa_php_mixdb_obj_transaction:';
 
     public function __construct(string $dsn, string $username, string $password, array $options = [])
     {

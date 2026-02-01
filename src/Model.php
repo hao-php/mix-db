@@ -626,6 +626,11 @@ abstract class Model
         return (int)($ret['mix_count'] ?? 0);
     }
 
+    /**
+     * 获取一行数据并取对应字段的值
+     * @param string $field
+     * @return mixed|null
+     */
     public function value(string $field)
     {
         $conn = $this->getConn(self::READ);
@@ -644,6 +649,11 @@ abstract class Model
         return $result->$field ?? null;
     }
 
+    /**
+     * 提取一维数组中对应字段的值
+     * @param string $field
+     * @return array
+     */
     public function column(string $field)
     {
         $conn = $this->getConn(self::READ);
@@ -655,6 +665,10 @@ abstract class Model
         return array_column($result, $field);
     }
 
+    /**
+     * 返回多行
+     * @return array
+     */
     public function get()
     {
         $conn = $this->getConn(self::READ);
@@ -665,7 +679,8 @@ abstract class Model
     }
 
     /**
-     * @return mixed|false
+     * 返回一行, 数据为空返回false
+     * @return array|object|false
      */
     public function first()
     {
@@ -673,9 +688,6 @@ abstract class Model
         $this->buildQuery($conn);
         $ret = $conn->first();
         $this->lastQueryLog = $conn->queryLog();
-        if ($ret === false) {
-            return null;
-        }
         return $ret;
     }
 
