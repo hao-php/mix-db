@@ -174,6 +174,8 @@ abstract class Model
         if ($countWhere == 1) {
             if (isset($where[0][0]) && is_array($where[0][0])) {
                 $where = $where[0];
+            } else {
+                throw new \Exception("where格式错误");
             }
         } elseif ($countWhere == 2) {
             $where = [$where];

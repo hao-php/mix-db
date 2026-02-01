@@ -10,6 +10,7 @@ class ModelTest extends TestCase
     {
         $model = TestUserModel::newInstance($this->db);
         $model->where('user_name', 'test_user');
+        $model->get();
         $sql = $model->getLastSql();
         $this->assertStringContainsString('WHERE', $sql);
     }
@@ -140,7 +141,7 @@ class ModelTest extends TestCase
         $result = $model
             ->where('age', '>', 18)
             ->where('user_name', 'LIKE', '%complex%')
-            ->order('age', 'DESC')
+            ->order('age', 'desc')
             ->limit(10)
             ->get();
         
